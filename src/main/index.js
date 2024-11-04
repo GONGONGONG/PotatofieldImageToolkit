@@ -37,6 +37,8 @@ if (process.env.NODE_ENV === 'development') {
 function createWindow(args) {
   let newWindow = new BrowserWindow({
     title: args.title,
+    width: args.width,
+    height: args.height,
     frame: false,
     fullscreenable: false,
     resizable: true,
@@ -121,6 +123,9 @@ function openWindow(args) {
     if (args.width) {
       targetArgs.width = args.width
       targetArgs.height = args.height
+    } else if (args.title == '图片裁剪工具'){
+      targetArgs.width = 1920
+      targetArgs.height = 1080
     }
     createWindow(targetArgs)
   }

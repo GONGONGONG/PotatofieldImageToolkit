@@ -55,17 +55,6 @@
                     <el-option label="预定义比例" value="preset"/>
                   </el-select>
                 </div>
-                <div class="control-row" v-if="mode == 'free'">
-                  <div class="text">裁剪区域尺寸</div>
-                </div>
-                <div class="control-row" v-if="mode == 'free'">
-                  <el-input
-                    :value="Math.round(this.width) + ' * ' + Math.round(this.height)"
-                    size="mini"
-                    disabled
-                    class="full-width-control">
-                  </el-input>
-                </div>
                 <div class="control-row" v-if="mode == 'custom' || mode == 'preset'">
                   <div class="text">裁剪比例</div>
                 </div>
@@ -75,7 +64,7 @@
                     v-model="ratio"
                     placeholder="格式为“3:2”"
                     class="full-width-control">
-                    <el-button @click="setRatio" slot="append">确认</el-button>
+                    <el-button type="text" @click="setRatio" slot="append">确认</el-button>
                   </el-input>
                 </div>
                 <div class="control-row" v-if="mode == 'preset'">
@@ -98,6 +87,31 @@
                     <el-option label="宽屏电脑显示器竖屏（9:21）" value="9:21"/>
                     <el-option label="电影屏幕（2.39:1）" value="2.39:1"/>
                   </el-select>
+                </div>
+                <template v-if="mode == 'custom' || mode == 'preset'">
+                  <div class="control-row" >
+                    <div class="text">默认宽度</div>
+                  </div>
+                  <div class="control-row">
+                    <el-input
+                      size="mini"
+                      v-model="defaultWidth"
+                      placeholder="格式为“640:6400”"
+                      class="full-width-control">
+                      <el-button type="text" @click="setDefaultWidth" slot="append">确认</el-button>
+                    </el-input>
+                  </div>
+                </template>
+                <div class="control-row">
+                  <div class="text">裁剪区域尺寸</div>
+                </div>
+                <div class="control-row">
+                  <el-input
+                    :value="Math.round(this.width) + ' * ' + Math.round(this.height)"
+                    size="mini"
+                    disabled
+                    class="full-width-control">
+                  </el-input>
                 </div>
                 <div class="control-row">
                   <div class="text">旋转</div>
@@ -180,6 +194,7 @@
           </el-tab-pane>
         </el-tabs>
         <div id="actions">
+          <el-button type="danger" size="mini" @click="skip" class="bar-button">跳过此图</el-button>
           <el-button type="primary" size="mini" @click="reset" class="bar-button">重置</el-button>
           <el-button type="primary" size="mini" @click="start" class="bar-button">开始处理</el-button>
         </div>
@@ -209,6 +224,7 @@ export default {
       rotate: 0,
       width: 0,
       height: 0,
+      defaultWidth: 0,
       quality: 90,
       distDirectory: '',
       append: '_cropped',
@@ -312,6 +328,7 @@ export default {
             }
             let vm = this
             let cropper = new Cropper(image, {
+              // checkCrossOrigin: false, // 本地环境加载img时的链接会带有时间戳，会导致图片加载出问题
               viewMode: vm.allowOutOfImage ? 0 : 2,
               dragMode: 'move',
               autoCropArea: 0.5,
@@ -340,8 +357,24 @@ export default {
     },
     setRatio() {
       let numbers = this.ratio.split(':')
-      let ratio = numbers[0] / numbers[1]
-      this.cropper.setAspectRatio(ratio)
+        let ratio = numbers[0] / numbers[1]
+        this.cropper.setAspectRatio(ratio)
+      if ((this.mode == 'custom' || this.mode == 'preset') && this.defaultWidth) {
+        this.setDefaultWidth()
+      }
+    },
+    setDefaultWidth() {
+      if (this.defaultWidth) {
+        let numbers = this.ratio.split(':')
+        let ratio = numbers[0] / numbers[1]
+        this.cropper.setData({
+          width: this.defaultWidth,
+          height: Math.round(this.defaultWidth / ratio)
+        })
+      } else {
+        this.defaultWidth = 0
+        this.reset()
+      }
     },
     reset() {
       this.cropper.reset()
@@ -417,6 +450,15 @@ export default {
             }
           })
         })
+      }
+    },
+    skip() {
+      if (this.$store.state.cropper.fileList.length > 1) {
+        this.$store.dispatch('cropper/fileListDelete', this.fileIndex).then(() => {
+          this.init(this.fileIndex)
+        })
+      } else {
+        this.back()
       }
     }
   },
